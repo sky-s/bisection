@@ -111,17 +111,7 @@ if nargin == 5
 end
 if nargin<4 || isempty(target); target = 0; end
 
-
-ub_in = ub; lb_in = lb; 
 f = @(x) f(x) - target;
-
-% --- Flip UB and LB if necessary. ---
-isFlipped = lb > ub;
-if any(isFlipped(:))
-    ub(isFlipped) = lb_in(isFlipped);
-    lb(isFlipped) = ub_in(isFlipped);
-    ub_in = ub; lb_in = lb;
-end
 
 % --- Make sure everything is the same size for a non-scalar problem. ---
 if isscalar(lb) && isscalar(ub)
@@ -143,12 +133,6 @@ elseif ~isscalar(lb) && isscalar(ub)
     ub = ub + zeros(size(lb));
 end
 
-% In newer versions of Matlab, variables should be initialized in the parent
-% function.
-stillNotDone = [];
-outsideTolX = [];
-outsideTolFun = [];
-
 % --- Iterate ---
 lb_sign = sign(f(lb));  
 while true
@@ -165,10 +149,8 @@ while true
     ub(~select) = x(~select);
 end
 
-% --- Check that f(x+tolX) and f(x-tolX) have opposite sign. ---
-fu = f(min(x+tolX,ub_in)); 
-fl = f(max(x-tolX,lb_in));
-unboundedRoot = (fu.*fl) > 0;
+% --- Check that f(lb) and f(ub) have opposite sign. ---
+unboundedRoot = sign(f(ub)) == sign(f(lb));
 
 % Throw out unbounded results if not meeting TolFun convergence criteria.
 x(unboundedRoot & outsideTolFun) = NaN; 
