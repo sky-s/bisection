@@ -114,22 +114,18 @@ if nargin<4 || isempty(target); target = 0; end
 f = @(x) f(x) - target;
 
 % --- Make sure everything is the same size for a non-scalar problem. ---
-if isscalar(lb) && isscalar(ub)
-    % Test if f returns multiple outputs for scalar input.
-    if ~isscalar(target)
-        ub = ub + zeros(size(target));
-    else
-        jnk = f(ub); 
-        if ~isscalar(jnk)
-            ub = ub + zeros(size(jnk));
-        end
+if isscalar(lb) && isscalar(ub)&& isscalar(target)
+    jnk = f(ub); 
+    if ~isscalar(jnk)
+        ub = ub + zeros(size(jnk));
+        lb = lb + zeros(size(jnk));
     end
-end
-
-% Check if lb and/or ub need to be made into arrays.
-if isscalar(lb) && ~isscalar(ub)    
+elseif isscalar(lb) && isscalar(ub)
+    ub = ub + zeros(size(target));
+    lb = lb + zeros(size(target));
+elseif isscalar(lb)
     lb = lb + zeros(size(ub));
-elseif ~isscalar(lb) && isscalar(ub)    
+elseif isscalar(ub)
     ub = ub + zeros(size(lb));
 end
 
