@@ -149,24 +149,21 @@ stillNotDone = [];
 outsideTolX = [];
 outsideTolFun = [];
 
-testconvergence();
-
 % --- Iterate ---
-while any(stillNotDone(:))
-    bigger = fx.*f(ub) > 0;
-    ub(bigger) = x(bigger);
-    lb(~bigger) = x(~bigger);
-    
-    testconvergence();
-end
-
-    function testconvergence()
-        x = (ub+lb)/2;
-        fx = f(x);
-        outsideTolFun = abs(fx)  > tolFun;
-        outsideTolX = (ub - lb) > tolX;
-        stillNotDone = outsideTolX & outsideTolFun;
+lb_sign = sign(f(lb));  
+while true
+    x = (lb + ub) / 2;
+    fx = f(x);
+    outsideTolX = abs(ub - x) > tolX;
+    outsideTolFun = abs(fx) > tolFun;
+    con = ~(outsideTolX & outsideTolFun);
+    if all(con(:))
+        break;
     end
+    select = sign(fx) == lb_sign;
+    lb(select) = x(select);
+    ub(~select) = x(~select);
+end
 
 % --- Check that f(x+tolX) and f(x-tolX) have opposite sign. ---
 fu = f(min(x+tolX,ub_in)); 
