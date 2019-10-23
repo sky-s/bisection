@@ -136,8 +136,8 @@ while true
     fx = f(x);
     outsideTolX = abs(ub - x) > tolX;
     outsideTolFun = abs(fx) > tolFun;
-    con = ~(outsideTolX & outsideTolFun);
-    if all(con(:))
+    stillNotDone = outsideTolX & outsideTolFun;
+    if ~any(stillNotDone(:))
         break;
     end
     select = sign(fx) == lb_sign;
