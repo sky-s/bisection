@@ -167,7 +167,7 @@ end
         x = (ub+lb)/2;
         fx = f(x);
         outsideTolFun = abs(fx) > tolFun;
-        outsideTolX = (ub - lb) > tolX;
+        outsideTolX = (x - lb) > tolX;
         stillNotDone = outsideTolX & outsideTolFun;
     end
 
