@@ -1,5 +1,5 @@
 function [x,fx,exitFlag] = bisection(f,lb,ub,target,options)
-% BISECTION Fast and robust root-finding method that handles n-dim arrays.
+% BISECTION  Fast and robust root-finding method that handles n-dim arrays.
 % 
 %   [x,fVal,ExitFlag] = BISECTION(f,LB,UB,target,options) finds x within TolX
 %   (LB < x < UB) such that f(x) = target +/- TolFun.
@@ -152,8 +152,11 @@ outsideTolFun = [];
 testconvergence();
 
 % --- Iterate ---
+fub = f(ub);
 while any(stillNotDone(:))
-    bigger = fx.*f(ub) > 0;
+    bigger = sign(fx.*fub) > 0;
+    fub(bigger) = fx(bigger);
+    
     ub(bigger) = x(bigger);
     lb(~bigger) = x(~bigger);
     
@@ -163,7 +166,7 @@ end
     function testconvergence()
         x = (ub+lb)/2;
         fx = f(x);
-        outsideTolFun = abs(fx)  > tolFun;
+        outsideTolFun = abs(fx) > tolFun;
         outsideTolX = (x - lb) > tolX;
         stillNotDone = outsideTolX & outsideTolFun;
     end
@@ -171,13 +174,16 @@ end
 % --- Check that f(x+tolX) and f(x-tolX) have opposite sign. ---
 fu = f(min(x+tolX,ub_in)); 
 fl = f(max(x-tolX,lb_in));
-unboundedRoot = (fu.*fl) > 0;
+unboundedRoot = sign(fu.*fl) > 0;
 
 % Throw out unbounded results if not meeting TolFun convergence criteria.
 x(unboundedRoot & outsideTolFun) = NaN; 
 
 % --- Catch NaN elements of UB, LB, target, or other funky stuff. ---
 x(isnan(fx)) = NaN;
+x(isnan(tolX)) = NaN;
+x(isnan(tolFun)) = NaN;
+fx(isnan(x)) = NaN;
 
 % --- Characterize results. ---
 fx = fx + target;
@@ -189,16 +195,3 @@ if nargout > 2
 end
 
 end
-
-% V2: July     2010
-% V3: December 2012
-% don't remember when
-%   typo line 39; added fn handle to see also; made array in example 2
-%   smaller; changed wording in example 1
-% 2013-08-23 
-%  -changed scalar*ones(...) calls to scalar+zeros(...) calls based on
-%   http://undocumentedmatlab.com/blog/allocation-performance-take-2/
-%  -rearranged help block and formatted a tiny bit
-%  -uploaded to FEX
-% 2015-08-20 - updated help; uploaded to FEX
-% 2019-02-19 - initialization of variables in parent function
