@@ -153,6 +153,9 @@ x(unboundedRoot & outsideTolFun) = NaN;
 
 % --- Catch NaN elements of UB, LB, target, or other funky stuff. ---
 x(isnan(fx)) = NaN;
+x(isnan(tolX)) = NaN;
+x(isnan(tolFun)) = NaN;
+fx(isnan(x)) = NaN;
 
 % --- Characterize results. ---
 fx = fx + target;
