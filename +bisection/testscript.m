@@ -153,6 +153,22 @@ options.TolX = 1e-6;
 assert(exitFlag == 1)
 assert(abs(x+3) < 1e-5)
 
+%% Disallow TolFun at kissing root, other direction
+% -1 is evaluated as zero, but never within a negative tolFun.
+options.TolFun = -inf;
+options.TolX = 1e-6;
+[x, fval, exitFlag] = bisection(fi,-6,4,0,options);
+assert(exitFlag == 1)
+assert(abs(x-3) < 1e-5)
+
+%% Disallow TolFun at kissing root, flipped
+% 1 is evaluated as zero, but never within a negative tolFun.
+options.TolFun = -inf;
+options.TolX = 1e-6;
+[x, fval, exitFlag] = bisection(@(x) -fk(x),-4,6,0,options);
+assert(exitFlag == 1)
+assert(abs(x+3) < 1e-5)
+
 %% Disallow TolFun at kissing root, lower bound is root
 options.TolFun = -inf;
 options.TolX = 1e-6;
