@@ -152,31 +152,21 @@ end
 unboundedRoot = sign(fub).*sign(f(lb)) > 0;
 ub(unboundedRoot) = NaN;
 
-% In newer versions of Matlab, variables should be initialized in the parent
-% function.
-stillNotDone = [];
-outsideTolX = [];
-outsideTolFun = [];
-
-
-%% Iterate 
-testconvergence();
-while any(stillNotDone(:))
-    bigger = sign(fx).*sign(fub) > 0;
-    fub(bigger) = fx(bigger); 
-    ub(bigger) = x(bigger);
-    lb(~bigger) = x(~bigger);
-    
-    testconvergence();
-end
-
-    function testconvergence()
-        x = (ub+lb)/2;
-        fx = f(x);
-        outsideTolFun = abs(fx) > tolFun;
-        outsideTolX = (x - lb) > tolX;
-        stillNotDone = outsideTolX & outsideTolFun;
+%% Iterate
+ubSign = sign(fub);  
+while true
+    x = (lb + ub) / 2;
+    fx = f(x);
+    outsideTolX = abs(ub - x) > tolX;
+    outsideTolFun = abs(fx) > tolFun;
+    stillNotDone = outsideTolX & outsideTolFun;
+    if ~any(stillNotDone(:))
+        break;
     end
+    select = sign(fx) ~= ubSign;
+    lb(select) = x(select);
+    ub(~select) = x(~select);
+end
 
 %% Catch NaN elements of UB, LB, target, or other funky stuff. 
 x(isnan(fx)) = NaN;
