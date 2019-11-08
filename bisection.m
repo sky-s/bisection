@@ -162,9 +162,8 @@ outsideTolFun = [];
 %% Iterate 
 testconvergence();
 while any(stillNotDone(:))
-    bigger = sign(fx.*fub) > 0;
-    fub(bigger) = fx(bigger);
-    
+    bigger = sign(fx).*sign(fub) > 0;
+    fub(bigger) = fx(bigger); 
     ub(bigger) = x(bigger);
     lb(~bigger) = x(~bigger);
     
