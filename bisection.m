@@ -1,8 +1,8 @@
 function [x,fx,exitFlag] = bisection(f,lb,ub,target,options)
 % BISECTION  Fast and robust root-finding method that handles n-dim arrays.
 % 
-%   [x,fVal,ExitFlag] = BISECTION(f,LB,UB,target,options) finds x within TolX
-%   (LB < x < UB) such that f(x) = target +/- TolFun.
+%   [x,fVal,ExitFlag] = BISECTION(f,LB,UB,target,options) finds x within 
+%   (LB < x < UB) such that f(x +/- TolX) = target OR f(x) = target +/- TolFun.
 % 
 %   x = BISECTION(f,LB,UB) finds the root(s) of function f on the interval [LB,
 %   UB], i.e. finds x such that f(x) = 0 where LB <= x <= UB. f will never be
@@ -111,70 +111,42 @@ if nargin == 5
 end
 if nargin<4 || isempty(target); target = 0; end
 
-
-ub_in = ub; lb_in = lb; 
 f = @(x) f(x) - target;
 
-% --- Flip UB and LB if necessary. ---
-isFlipped = lb > ub;
-if any(isFlipped(:))
-    ub(isFlipped) = lb_in(isFlipped);
-    lb(isFlipped) = ub_in(isFlipped);
-    ub_in = ub; lb_in = lb;
-end
-
 % --- Make sure everything is the same size for a non-scalar problem. ---
-if isscalar(lb) && isscalar(ub)
-    % Test if f returns multiple outputs for scalar input.
-    if ~isscalar(target)
-        ub = ub + zeros(size(target));
-    else
-        jnk = f(ub); 
-        if ~isscalar(jnk)
-            ub = ub + zeros(size(jnk));
-        end
+if isscalar(lb) && isscalar(ub)&& isscalar(target)
+    jnk = f(ub); 
+    if ~isscalar(jnk)
+        ub = ub + zeros(size(jnk));
+        lb = lb + zeros(size(jnk));
     end
-end
-
-% Check if lb and/or ub need to be made into arrays.
-if isscalar(lb) && ~isscalar(ub)    
+elseif isscalar(lb) && isscalar(ub)
+    ub = ub + zeros(size(target));
+    lb = lb + zeros(size(target));
+elseif isscalar(lb)
     lb = lb + zeros(size(ub));
-elseif ~isscalar(lb) && isscalar(ub)    
+elseif isscalar(ub)
     ub = ub + zeros(size(lb));
 end
 
-% In newer versions of Matlab, variables should be initialized in the parent
-% function.
-stillNotDone = [];
-outsideTolX = [];
-outsideTolFun = [];
-
-testconvergence();
-
 % --- Iterate ---
-fub = f(ub);
-while any(stillNotDone(:))
-    bigger = sign(fx.*fub) > 0;
-    fub(bigger) = fx(bigger);
-    
-    ub(bigger) = x(bigger);
-    lb(~bigger) = x(~bigger);
-    
-    testconvergence();
+lb_sign = sign(f(lb));  
+while true
+    x = (lb + ub) / 2;
+    fx = f(x);
+    outsideTolX = abs(ub - x) > tolX;
+    outsideTolFun = abs(fx) > tolFun;
+    stillNotDone = outsideTolX & outsideTolFun;
+    if ~any(stillNotDone(:))
+        break;
+    end
+    select = sign(fx) == lb_sign;
+    lb(select) = x(select);
+    ub(~select) = x(~select);
 end
 
-    function testconvergence()
-        x = (ub+lb)/2;
-        fx = f(x);
-        outsideTolFun = abs(fx) > tolFun;
-        outsideTolX = (x - lb) > tolX;
-        stillNotDone = outsideTolX & outsideTolFun;
-    end
-
-% --- Check that f(x+tolX) and f(x-tolX) have opposite sign. ---
-fu = f(min(x+tolX,ub_in)); 
-fl = f(max(x-tolX,lb_in));
-unboundedRoot = sign(fu.*fl) > 0;
+% --- Check that f(lb) and f(ub) have opposite sign. ---
+unboundedRoot = sign(f(ub)) == sign(f(lb));
 
 % Throw out unbounded results if not meeting TolFun convergence criteria.
 x(unboundedRoot & outsideTolFun) = NaN; 
