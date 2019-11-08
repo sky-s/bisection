@@ -6,6 +6,10 @@
 fk = @(x) -(x+3).*(x-1).^2; % This function kisses but doesn't cross zero at 1.
 fi = @(x) fk(-x);
 
+counter reset
+[x, fval, exitFlag] = bisection(@countedcube,3,6)
+counter
+
 %% Basic usage
 [x, fval, exitFlag] = bisection(@sin,-1,2,0,optimset('TolX',1e-4));
 assert(abs(x)<1e-4);
@@ -15,7 +19,7 @@ assert(exitFlag>0)
 %% Basic DimVar usage
 options.TolX = u.um;
 options.TolFun = u.nm;
-[x, fval, exitFlag] = bisection(@(x) x,-1*u.m,2*u.m,0*u.m,options);
+[x, fval, exitFlag] = bisection(@(x) x,-1*u.m,2*u.m,[],options);
 
 %% Check function count for instant-converge
 % The number of function counts that are 'overhead' is up to 3:
@@ -120,7 +124,7 @@ badInd = [3,15,8];
 % Checks:
 assert(all(isnan(x(badInd))))
 assert(all(isnan(fval(badInd))))
-assert(all(exitFlag(badInd) == -1))
+assert(all(exitFlag(badInd) < 0))
 assert(all(exitFlag(~badInd) > 0))
 
 %% Trick it - roots at endpoints
@@ -136,14 +140,47 @@ assert(exitFlag==1)
 
 %% Trick it - roots just outside endpoints
 [x, fval, exitFlag] = bisection(@(x)x,eps,5,0);
-assert(exitFlag==-1)
+assert(exitFlag==-2)
 [x, fval, exitFlag] = bisection(@(x)x,0,1,1+eps);
-assert(exitFlag==-1)
+assert(exitFlag==-2)
 
 %% Trick it - instant root find
 [x, fval, exitFlag] = bisection(fk,-4,6,0); % 1 is evaluated as zero, stopping.
 assert(exitFlag == 2)
 assert(x == 1)
+
+%% Unsolvable - no roots
+[x, fval, exitFlag] = bisection(fk,-3,5,sqrt(eps));
+assert(exitFlag < 0 && isnan(x))
+
+%% Multiple roots
+[x, fval, exitFlag] = bisection(fk,-3,5,-sqrt(eps)); % Should be solvable.
+assert(exitFlag > 0)
+
+%% NaN tolfun
+options.TolFun = nan;
+options.TolX = 1e-6;
+[x, fval, exitFlag] = bisection(@sin,-1,2,0,options);
+assert(exitFlag == -1)
+
+%% NaN tolx
+options.TolX = nan;
+options.TolFun = 1e-6;
+[x, fval, exitFlag] = bisection(@sin,-1,2,0,options);
+assert(exitFlag == -1)
+
+%% Many roots, straddling bounds
+f = @(x) sin(x)+.5;
+[x, fval, exitFlag] = bisection(f,-pi/2,128);
+assert(exitFlag == 1)
+
+%% Many roots, non-straddling bounds
+f = @(x) sin(x)+.5;
+[x, fval, exitFlag] = bisection(f,-pi/2,100);
+assert(exitFlag == -2)
+
+%% Make sure f is never evaluated outside bounds.
+[x, fval, exitFlag] = bisection(@blowupcube,-20,3,27);
 
 %% Disallow TolFun at kissing root
 % 1 is evaluated as zero, but never within a negative tolFun.
@@ -183,38 +220,6 @@ options.TolX = 1e-6;
 assert(exitFlag == 1)
 assert(abs(x-3) < 1e-5)
 
-%% Unsolvable - no roots
-[x, fval, exitFlag] = bisection(fk,-3,5,sqrt(eps));
-assert(exitFlag == -1 && isnan(x))
-
-%% Multiple roots
-[x, fval, exitFlag] = bisection(fk,-3,5,-sqrt(eps)); % Should be solvable.
-assert(exitFlag > 0)
-
-%% NaN tolfun
-options.TolFun = nan;
-options.TolX = 1e-6;
-[x, fval, exitFlag] = bisection(@sin,-1,2,0,options);
-assert(exitFlag == -1)
-
-%% NaN tolx
-options.TolX = nan;
-options.TolFun = 1e-6;
-[x, fval, exitFlag] = bisection(@sin,-1,2,0,options);
-assert(exitFlag == -1)
-
-%% Many roots, straddling bounds
-f = @(x) sin(x)+.5;
-[x, fval, exitFlag] = bisection(f,-pi/2,128);
-assert(exitFlag == 1)
-
-%% Many roots, non-straddling bounds
-f = @(x) sin(x)+.5;
-[x, fval, exitFlag] = bisection(f,-pi/2,100);
-assert(exitFlag == 1)
-
-
-
 %% test functions
 
 function output = countedcube(x)
@@ -225,4 +230,11 @@ end
 function output = delayedcube(x)
 pause(0.001);
 output = x.^3;
+end
+
+function output = blowupcube(x)
+output = x.^3;
+if any((x(:) < -20) | (x(:) > 3))
+    error('This function cannot be evaluated outside bounds.')
+end
 end

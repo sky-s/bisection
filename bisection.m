@@ -32,6 +32,7 @@ function [x,fx,exitFlag] = bisection(f,lb,ub,target,options)
 %       3   Search interval smaller than TolX AND function value within 
 %           TolFun of target.
 %      -1   No solution found.
+%      -2   Unbounded root (f(LB) and f(UB) do not span target).
 % 
 %   Any or all of f(scalar), f(array), LB, UB, target, TolX, or TolFun may be
 %   scalar or n-dim arrays. All non-scalar arrays must be the same size. All
@@ -93,7 +94,7 @@ function [x,fx,exitFlag] = bisection(f,lb,ub,target,options)
 %   Author  - Sky Sartorius
 %   Contact - www.mathworks.com/matlabcentral/fileexchange/authors/101715
 
-% --- Process inputs. ---
+%% Process inputs. 
 % Set default values
 tolX = 1e-6;
 tolFun = 0;
@@ -109,28 +110,50 @@ if nargin == 5
         tolX = options;
     end      
 end
-if nargin<4 || isempty(target); target = 0; end
 
-f = @(x) f(x) - target;
-
-% --- Make sure everything is the same size for a non-scalar problem. ---
-if isscalar(lb) && isscalar(ub)&& isscalar(target)
-    jnk = f(ub); 
-    if ~isscalar(jnk)
-        ub = ub + zeros(size(jnk));
-        lb = lb + zeros(size(jnk));
-    end
-elseif isscalar(lb) && isscalar(ub)
-    ub = ub + zeros(size(target));
-    lb = lb + zeros(size(target));
-elseif isscalar(lb)
-    lb = lb + zeros(size(ub));
-elseif isscalar(ub)
-    ub = ub + zeros(size(lb));
+if (nargin < 4) || isempty(target)
+    target = 0;
+else
+    f = @(x) f(x) - target;
 end
 
-% --- Iterate ---
-lb_sign = sign(f(lb));  
+ub_in = ub; lb_in = lb; 
+
+%% Flip UB and LB if necessary. 
+isFlipped = lb > ub;
+if any(isFlipped(:))
+    ub(isFlipped) = lb_in(isFlipped);
+    lb(isFlipped) = ub_in(isFlipped);
+    ub_in = ub; lb_in = lb;
+end
+
+%% Make sure everything is the same size for a non-scalar problem. 
+fub = f(ub);
+if isscalar(lb) && isscalar(ub)
+    % Test if f returns multiple outputs for scalar input.
+    if ~isscalar(target)
+        id = ones(size(target));
+        ub = ub.*id;
+        fub = fub.*id;
+    elseif ~isscalar(fub)
+        ub = ub.*ones(size(fub));
+    end
+end
+
+% Check if lb and/or ub need to be made into arrays.
+if isscalar(lb) && ~isscalar(ub)    
+    lb = lb.*ones(size(ub));
+elseif ~isscalar(lb) && isscalar(ub)
+    id = ones(size(lb));
+    ub = ub.*id;
+    fub = fub.*id;
+end
+
+unboundedRoot = sign(fub).*sign(f(lb)) > 0;
+ub(unboundedRoot) = NaN;
+
+%% Iterate
+ubSign = sign(fub);  
 while true
     x = (lb + ub) / 2;
     fx = f(x);
@@ -140,30 +163,27 @@ while true
     if ~any(stillNotDone(:))
         break;
     end
-    select = sign(fx) == lb_sign;
+    select = sign(fx) ~= ubSign;
     lb(select) = x(select);
     ub(~select) = x(~select);
 end
 
-% --- Check that f(lb) and f(ub) have opposite sign. ---
-unboundedRoot = sign(f(ub)) == sign(f(lb));
-
-% Throw out unbounded results if not meeting TolFun convergence criteria.
-x(unboundedRoot & outsideTolFun) = NaN; 
-
-% --- Catch NaN elements of UB, LB, target, or other funky stuff. ---
+%% Catch NaN elements of UB, LB, target, or other funky stuff. 
 x(isnan(fx)) = NaN;
 x(isnan(tolX)) = NaN;
 x(isnan(tolFun)) = NaN;
 fx(isnan(x)) = NaN;
 
-% --- Characterize results. ---
-fx = fx + target;
+%% Characterize results. 
+if nargout > 1 && nnz(target(:))
+    fx = fx + target;
+end
 if nargout > 2 
     exitFlag                                    = +~outsideTolX;
     exitFlag(~outsideTolFun)                    =  2;
     exitFlag(~outsideTolFun & ~outsideTolX)     =  3;
     exitFlag(isnan(x))                          = -1;
+    exitFlag(unboundedRoot)                     = -2;
 end
 
 end
