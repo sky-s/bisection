@@ -93,7 +93,7 @@ function [x,fx,exitFlag] = bisection(f,lb,ub,target,options)
 %   Author  - Sky Sartorius
 %   Contact - www.mathworks.com/matlabcentral/fileexchange/authors/101715
 
-% --- Process inputs. ---
+%% Process inputs. 
 % Set default values
 tolX = 1e-6;
 tolFun = 0;
@@ -109,13 +109,16 @@ if nargin == 5
         tolX = options;
     end      
 end
-if nargin<4 || isempty(target); target = 0; end
 
+if (nargin < 4) || isempty(target)
+    target = 0;
+else
+    f = @(x) f(x) - target;
+end
 
 ub_in = ub; lb_in = lb; 
-f = @(x) f(x) - target;
 
-% --- Flip UB and LB if necessary. ---
+%% Flip UB and LB if necessary. 
 isFlipped = lb > ub;
 if any(isFlipped(:))
     ub(isFlipped) = lb_in(isFlipped);
@@ -123,24 +126,26 @@ if any(isFlipped(:))
     ub_in = ub; lb_in = lb;
 end
 
-% --- Make sure everything is the same size for a non-scalar problem. ---
+%% Make sure everything is the same size for a non-scalar problem. 
+fub = f(ub);
 if isscalar(lb) && isscalar(ub)
     % Test if f returns multiple outputs for scalar input.
     if ~isscalar(target)
-        ub = ub + zeros(size(target));
-    else
-        jnk = f(ub); 
-        if ~isscalar(jnk)
-            ub = ub + zeros(size(jnk));
-        end
+        id = ones(size(target));
+        ub = ub.*id;
+        fub = fub.*id;
+    elseif ~isscalar(fub)
+        ub = ub.*ones(size(fub));
     end
 end
 
 % Check if lb and/or ub need to be made into arrays.
 if isscalar(lb) && ~isscalar(ub)    
-    lb = lb + zeros(size(ub));
-elseif ~isscalar(lb) && isscalar(ub)    
-    ub = ub + zeros(size(lb));
+    lb = lb.*ones(size(ub));
+elseif ~isscalar(lb) && isscalar(ub)
+    id = ones(size(lb));
+    ub = ub.*id;
+    fub = fub.*id;
 end
 
 % In newer versions of Matlab, variables should be initialized in the parent
@@ -151,8 +156,7 @@ outsideTolFun = [];
 
 testconvergence();
 
-% --- Iterate ---
-fub = f(ub);
+%% Iterate 
 while any(stillNotDone(:))
     bigger = sign(fx.*fub) > 0;
     fub(bigger) = fx(bigger);
@@ -171,7 +175,7 @@ end
         stillNotDone = outsideTolX & outsideTolFun;
     end
 
-% --- Check that f(x+tolX) and f(x-tolX) have opposite sign. ---
+%% Check that f(x+tolX) and f(x-tolX) have opposite sign. 
 fu = f(min(x+tolX,ub_in)); 
 fl = f(max(x-tolX,lb_in));
 unboundedRoot = sign(fu.*fl) > 0;
@@ -179,14 +183,16 @@ unboundedRoot = sign(fu.*fl) > 0;
 % Throw out unbounded results if not meeting TolFun convergence criteria.
 x(unboundedRoot & outsideTolFun) = NaN; 
 
-% --- Catch NaN elements of UB, LB, target, or other funky stuff. ---
+%% Catch NaN elements of UB, LB, target, or other funky stuff. 
 x(isnan(fx)) = NaN;
 x(isnan(tolX)) = NaN;
 x(isnan(tolFun)) = NaN;
 fx(isnan(x)) = NaN;
 
-% --- Characterize results. ---
-fx = fx + target;
+%% Characterize results. 
+if nargout > 1 && nnz(target(:))
+    fx = fx + target;
+end
 if nargout > 2 
     exitFlag                                    = +~outsideTolX;
     exitFlag(~outsideTolFun)                    =  2;
