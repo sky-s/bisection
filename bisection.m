@@ -32,6 +32,7 @@ function [x,fx,exitFlag] = bisection(f,lb,ub,target,options)
 %       3   Search interval smaller than TolX AND function value within 
 %           TolFun of target.
 %      -1   No solution found.
+%      -2   Unbounded root (f(LB) and f(UB) do not span target).
 % 
 %   Any or all of f(scalar), f(array), LB, UB, target, TolX, or TolFun may be
 %   scalar or n-dim arrays. All non-scalar arrays must be the same size. All
@@ -148,15 +149,18 @@ elseif ~isscalar(lb) && isscalar(ub)
     fub = fub.*id;
 end
 
+unboundedRoot = sign(fub).*sign(f(lb)) > 0;
+ub(unboundedRoot) = NaN;
+
 % In newer versions of Matlab, variables should be initialized in the parent
 % function.
 stillNotDone = [];
 outsideTolX = [];
 outsideTolFun = [];
 
-testconvergence();
 
 %% Iterate 
+testconvergence();
 while any(stillNotDone(:))
     bigger = sign(fx.*fub) > 0;
     fub(bigger) = fx(bigger);
@@ -175,14 +179,6 @@ end
         stillNotDone = outsideTolX & outsideTolFun;
     end
 
-%% Check that f(x+tolX) and f(x-tolX) have opposite sign. 
-fu = f(min(x+tolX,ub_in)); 
-fl = f(max(x-tolX,lb_in));
-unboundedRoot = sign(fu.*fl) > 0;
-
-% Throw out unbounded results if not meeting TolFun convergence criteria.
-x(unboundedRoot & outsideTolFun) = NaN; 
-
 %% Catch NaN elements of UB, LB, target, or other funky stuff. 
 x(isnan(fx)) = NaN;
 x(isnan(tolX)) = NaN;
@@ -198,6 +194,7 @@ if nargout > 2
     exitFlag(~outsideTolFun)                    =  2;
     exitFlag(~outsideTolFun & ~outsideTolX)     =  3;
     exitFlag(isnan(x))                          = -1;
+    exitFlag(unboundedRoot)                     = -2;
 end
 
 end
