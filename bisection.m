@@ -1,8 +1,8 @@
 function [x,fx,exitFlag] = bisection(f,lb,ub,target,options)
 % BISECTION  Fast and robust root-finding method that handles n-dim arrays.
 % 
-%   [x,fVal,ExitFlag] = BISECTION(f,LB,UB,target,options) finds x within TolX
-%   (LB < x < UB) such that f(x) = target +/- TolFun.
+%   [x,fVal,ExitFlag] = BISECTION(f,LB,UB,target,options) finds x within 
+%   (LB < x < UB) such that f(x +/- TolX) = target OR f(x) = target +/- TolFun.
 % 
 %   x = BISECTION(f,LB,UB) finds the root(s) of function f on the interval [LB,
 %   UB], i.e. finds x such that f(x) = 0 where LB <= x <= UB. f will never be
