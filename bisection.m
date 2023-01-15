@@ -117,14 +117,10 @@ else
     f = @(x) f(x) - target;
 end
 
-ub_in = ub; lb_in = lb; 
-
-%% Flip UB and LB if necessary. 
+%% Flip UB and LB elements if necessary. 
 isFlipped = lb > ub;
-if any(isFlipped(:))
-    ub(isFlipped) = lb_in(isFlipped);
-    lb(isFlipped) = ub_in(isFlipped);
-    ub_in = ub; lb_in = lb;
+if any(isFlipped,'all')
+    [ub(isFlipped),lb(isFlipped)] = deal(lb(isFlipped),ub(isFlipped));
 end
 
 %% Make sure everything is the same size for a non-scalar problem. 
