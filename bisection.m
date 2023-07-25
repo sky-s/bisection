@@ -119,7 +119,7 @@ end
 
 %% Flip UB and LB elements if necessary. 
 isFlipped = lb > ub;
-if any(isFlipped,'all')
+if any(isFlipped(:))
     [ub(isFlipped),lb(isFlipped)] = deal(lb(isFlipped),ub(isFlipped));
 end
 
