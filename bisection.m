@@ -13,13 +13,14 @@ function [x,fx,exitFlag] = bisection(f,lb,ub,target,options)
 %   x = BISECTION(f,LB,UB,target) finds x such that f(x) = target.
 % 
 %   x = BISECTION(f,LB,UB,target,TolX) will terminate the search when the search
-%   interval is smaller than TolX (TolX must be positive).
+%   interval is smaller than TolX.
 % 
 %   x = BISECTION(f,LB,UB,target,options) solves with the default parameters
 %   replaced by values in the structure OPTIONS, an argument created with the
-%   OPTIMSET function. Used options are TolX and TolFun. Note that OPTIMSET will
-%   not allow arrays for tolerances, so set the fields of the options structure
-%   manually for non-scalar TolX or TolFun.
+%   OPTIMSET function. Used options are TolX, TolFun, and MaxIter. Note that
+%   OPTIMSET will not allow arrays for tolerances, so set the fields of the
+%   options structure manually for non-scalar TolX or TolFun. Either TolX or
+%   TolFun must be positive.
 % 
 %   [x,fVal] = BISECTION(f,...) returns the value of f evaluated at x.
 %
@@ -31,6 +32,7 @@ function [x,fx,exitFlag] = bisection(f,lb,ub,target,options)
 %       2   Function value within TolFun of target.
 %       3   Search interval smaller than TolX AND function value within 
 %           TolFun of target.
+%       0   Max iteration limit reached.
 %      -1   No solution found.
 %      -2   Unbounded root (f(LB) and f(UB) do not span target).
 % 
@@ -85,6 +87,16 @@ function [x,fx,exitFlag] = bisection(f,lb,ub,target,options)
 %       f = @(x) A.*x.^0.2 + B.*x.^0.87 - 15;
 %       xstar = bisection(f,0,5)
 % 
+%   Example 3: Demonstration various exit conditions.
+%       % Flag:   -2   -1  0    1    2   3 
+%       lb     = [0.45 NaN 0    0.49 0   0];
+%       ub     = [0.55 1   1    0.51 1   1];
+%       target = [0    0.5 0.5  0.5  0.2 0.6];
+%       tolX   = [1    1   0    1    0   10]*1e-2;
+%       tolFun = [0    0   0    0    1   10]*1e-2;
+%       opts = struct('TolX',tolX,'TolFun',tolFun,'MaxIter',10);
+%       [x,fval,exitFlag] = bisection(@(x) x, lb, ub, target, opts)
+%
 %   See also FZERO, FMINBND, OPTIMSET, FUNCTION_HANDLE.
 % 
 %   [x,fVal,ExitFlag] = BISECTION(f,LB,UB,target,options)
@@ -98,6 +110,7 @@ function [x,fx,exitFlag] = bisection(f,lb,ub,target,options)
 % Set default values
 tolX = 1e-6;
 tolFun = 0;
+maxIter = Inf;
 if nargin == 5
     if isstruct(options)
         if isfield(options,'TolX') && ~isempty(options.TolX)
@@ -106,9 +119,15 @@ if nargin == 5
         if isfield(options,'TolFun') && ~isempty(options.TolFun)
             tolFun = options.TolFun;
         end
+        if isfield(options,'MaxIter') && ~isempty(options.MaxIter)
+            maxIter = options.MaxIter;
+        end
     else
         tolX = options;
     end      
+end
+if any(sign(tolX) < 1 & sign(tolFun) < 1,"all") && isinf(maxIter)
+    error("Either TolX or TolFun must be positive.")
 end
 
 if (nargin < 4) || isempty(target)
@@ -150,18 +169,21 @@ ub(unboundedRoot) = NaN;
 
 %% Iterate
 ubSign = sign(fub);  
+iter = 1;
 while true
     x = (lb + ub) / 2;
     fx = f(x);
     outsideTolX = abs(ub - x) > tolX;
     outsideTolFun = abs(fx) > tolFun;
     stillNotDone = outsideTolX & outsideTolFun;
-    if ~any(stillNotDone(:))
+    if ~any(stillNotDone(:)) || iter >= maxIter
         break;
     end
     select = sign(fx) ~= ubSign;
     lb(select) = x(select);
     ub(~select) = x(~select);
+    iter = iter + 1;
+
 end
 
 %% Catch NaN elements of UB, LB, target, or other funky stuff. 
@@ -175,7 +197,12 @@ if nargout > 1 && nnz(target(:))
     fx = fx + target;
 end
 if nargout > 2 
-    exitFlag                                    = +~outsideTolX;
+    if iter >= maxIter
+        exitFlag                                =  0*outsideTolX;
+    else
+        exitFlag                                =  NaN*outsideTolX;
+    end
+    exitFlag(~outsideTolX)                      =  1;
     exitFlag(~outsideTolFun)                    =  2;
     exitFlag(~outsideTolFun & ~outsideTolX)     =  3;
     exitFlag(isnan(x))                          = -1;
