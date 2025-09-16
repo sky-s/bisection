@@ -1,7 +1,7 @@
-function [x,fx,exitFlag] = bisection(f,lb,ub,target,options)
+function [x,fx,exitFlag,iter] = bisection(f,lb,ub,target,options)
 % BISECTION  Fast and robust root-finding method that handles n-dim arrays.
 % 
-%   [x,fVal,ExitFlag] = BISECTION(f,LB,UB,target,options) finds x within 
+%   [x,fVal,ExitFlag,iter] = BISECTION(f,LB,UB,target,options) finds x within 
 %   (LB < x < UB) such that f(x +/- TolX) = target OR f(x) = target +/- TolFun.
 % 
 %   x = BISECTION(f,LB,UB) finds the root(s) of function f on the interval [LB,
@@ -24,9 +24,10 @@ function [x,fx,exitFlag] = bisection(f,lb,ub,target,options)
 % 
 %   [x,fVal] = BISECTION(f,...) returns the value of f evaluated at x.
 %
-%   [x,fVal,ExitFlag] = BISECTION(...) returns an ExitFlag that describes the
-%   exit condition of BISECTION. Possible values of elements of ExitFlag and the
-%   corresponding exit conditions are
+%   [x,fVal,ExitFlag,iter] = BISECTION(...) returns an ExitFlag that describes
+%   the exit condition of BISECTION and the number of iterations performed.
+%   Possible values of elements of ExitFlag and the corresponding exit
+%   conditions are:
 %
 %       1   Search interval smaller than TolX.
 %       2   Function value within TolFun of target.
@@ -37,8 +38,9 @@ function [x,fx,exitFlag] = bisection(f,lb,ub,target,options)
 %      -2   Unbounded root (f(LB) and f(UB) do not span target).
 % 
 %   Any or all of f(scalar), f(array), LB, UB, target, TolX, or TolFun may be
-%   scalar or n-dim arrays. All non-scalar arrays must be the same size. All
-%   outputs will be this size.
+%   scalar or n-dim arrays. Non-scalar arrays should be the same size (in some
+%   cases where implicit expansion won't do this automatically). All outputs
+%   will be this size.
 % 
 %   Default values are target = 0, TolX = 1e-6, and TolFun = 0.
 % 
