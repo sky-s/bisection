@@ -1,7 +1,14 @@
 # bisection
 Very simple to use and robust method that takes array inputs, so it even has advantages over fzero.
 
-[![View Bisection Method Root Finding on File Exchange](https://www.mathworks.com/matlabcentral/images/matlab-file-exchange.svg)](https://www.mathworks.com/matlabcentral/fileexchange/28150)
+[![Install with mip](https://img.shields.io/badge/install_with-mip-1565C0)](https://mip.sh/packages/bisection) [![View Bisection Method Root Finding on File Exchange](https://www.mathworks.com/matlabcentral/images/matlab-file-exchange.svg)](https://www.mathworks.com/matlabcentral/fileexchange/28150)
+
+[Install with mip](https://mip.sh/packages/bisection):
+
+```matlab
+mip install bisection
+mip load bisection
+```
 
 BISECTION is a fast, simple-to-use, and robust root-finding method that handles n-dimensional arrays.
 
